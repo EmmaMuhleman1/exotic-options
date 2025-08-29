@@ -62,8 +62,7 @@ class BlackScholesModel:
 def monte_carlo_simulation(S0: float, r: float, sigma: float, T: float, 
                           n_paths: int = 10000, n_steps: int = 252) -> np.ndarray:
     """
-    Simulate stock price paths using Monte Carlo method.
-    
+    Simulate stock price paths using Monte Carlo method. 
     Args:
         S0: Initial stock price
         r: Risk-free rate
@@ -71,16 +70,13 @@ def monte_carlo_simulation(S0: float, r: float, sigma: float, T: float,
         T: Time to maturity
         n_paths: Number of simulation paths
         n_steps: Number of time steps
-        
     Returns:
         Array of simulated stock prices (n_paths x n_steps+1)
     """
     dt = T / n_steps
     paths = np.zeros((n_paths, n_steps + 1))
     paths[:, 0] = S0
-    
     for i in range(1, n_steps + 1):
         z = np.random.standard_normal(n_paths)
-        paths[:, i] = paths[:, i-1] * np.exp((r - 0.5*sigma**2)*dt + sigma*np.sqrt(dt)*z)
-    
+        paths[:, i] = paths[:, i - 1] * np.exp((r - 0.5 * sigma ** 2) * dt + sigma * np.sqrt(dt) * z))
     return paths
