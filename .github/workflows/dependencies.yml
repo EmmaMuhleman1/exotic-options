@@ -1,0 +1,113 @@
+name: Dependency Updates
+
+on:
+  schedule:
+    # Run every Monday at 9 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+jobs:
+  update-dependencies:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.11
+    
+    - name: Install pip-tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install pip-tools
+    
+    - name: Update requirements
+      run: |
+        # Upgrade all packages and regenerate requirements.txt
+        pip-compile --upgrade requirements.in --output-file requirements.txt || true
+        
+        # If requirements.in doesn't exist, create it from current requirements.txt
+        if [ ! -f "requirements.in" ]; then
+          # Create a .in file with just the main dependencies
+          echo "# Main dependencies - edit this file and run 'pip-compile' to update requirements.txt" > requirements.in
+          echo "numpy>=1.21.0" >> requirements.in
+          echo "scipy>=1.7.0" >> requirements.in
+          echo "matplotlib>=3.5.0" >> requirements.in
+          echo "plotly>=5.0.0" >> requirements.in
+          echo "pandas>=1.3.0" >> requirements.in
+          echo "jupyter>=1.0.0" >> requirements.in
+          echo "ipywidgets>=7.6.0" >> requirements.in
+          echo "seaborn>=0.11.0" >> requirements.in
+          echo "scikit-learn>=1.0.0" >> requirements.in
+          echo "statsmodels>=0.12.0" >> requirements.in
+          
+          # Compile the requirements
+          pip-compile requirements.in --output-file requirements.txt
+        fi
+    
+    - name: Update conda environment
+      run: |
+        # Update environment.yml with latest package versions
+        python -c "
+        import yaml
+        import sys
+        
+        packages_to_update = [
+            'python=3.11',
+            'numpy',
+            'scipy', 
+            'matplotlib',
+            'plotly',
+            'pandas',
+            'jupyter',
+            'ipywidgets',
+            'seaborn',
+            'scikit-learn',
+            'statsmodels'
+        ]
+        
+        try:
+            with open('environment.yml', 'r') as f:
+                env = yaml.safe_load(f)
+            
+            pip_deps = ['pytest', 'pytest-cov', 'black', 'flake8', 'mypy']
+            env['dependencies'] = packages_to_update + ['pip'] + [{'pip': pip_deps}]
+            
+            with open('environment.yml', 'w') as f:
+                yaml.dump(env, f, default_flow_style=False, sort_keys=False)
+            
+            print('Updated environment.yml successfully')
+        except Exception as e:
+            print('Error updating environment.yml:', str(e))
+            sys.exit(1)
+        "
+    
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: "chore: update dependencies"
+        title: "🔄 Automated dependency updates"
+        body: |
+          ## 📦 Dependency Updates
+          
+          This PR contains automated updates to project dependencies:
+          
+          - Updated `requirements.txt` with latest compatible versions
+          - Updated `environment.yml` for conda environment
+          
+          ### 🤖 Automated Changes
+          - All packages updated to latest compatible versions
+          - Maintained compatibility constraints
+          
+          ### ✅ Testing
+          - [ ] All tests pass
+          - [ ] No breaking changes detected
+          
+          **Note**: This PR was created automatically by GitHub Actions.
+        branch: dependency-updates
+        delete-branch: true
